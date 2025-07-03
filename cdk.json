@@ -4,6 +4,14 @@
     "@aws-cdk/aws-apigateway:usagePlanKeyOrderInsensitiveId": false,
     "@aws-cdk/aws-cloudfront:defaultSecurityPolicyTLSv1.2_2021": true,
     "@aws-cdk/aws-rds:lowercaseDbIdentifier": false,
-    "@aws-cdk/core:stackRelativeExports": false
+    "@aws-cdk/core:stackRelativeExports": false,
+    "repo_connection_arn": "arn:aws:codeconnections:us-east-1:637423451687:connection/e04e97b1-690f-406f-9595-6dd027b19e0c",
+    "DeploymentEnvironments": [
+        {
+            "envname": "isendev",
+            "account": "637423451687",
+            "region": "us-east-1"
+        }
+    ]
   }
 }
