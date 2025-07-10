@@ -10,7 +10,8 @@
         {
             "envname": "isendev",
             "account": "637423451687",
-            "region": "us-east-1"
+            "region": "us-east-1",
+            "enable_pivot_role_auto_create": true
         }
     ]
   }
