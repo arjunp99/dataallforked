@@ -36,7 +36,7 @@ class DatasetsPivotRole(PivotRoleStatementSet):
                 ],
                 resources=[f'arn:aws:athena:*:{self.account}:workgroup/{self.env_resource_prefix}*'],
             ),
-            # Minimal Glue catalog discovery permissions
+            # Minimal Glue catalog discovery and database creation permissions
             iam.PolicyStatement(
                 sid='GlueCatalogDiscovery',
                 effect=iam.Effect.ALLOW,
@@ -44,6 +44,7 @@ class DatasetsPivotRole(PivotRoleStatementSet):
                     'glue:GetDatabases',
                     'glue:GetTables',
                     'glue:SearchTables',
+                    'glue:CreateDatabase',  # Required for creating new dataall databases
                 ],
                 resources=[f'arn:aws:glue:*:{self.account}:catalog'],
             ),
