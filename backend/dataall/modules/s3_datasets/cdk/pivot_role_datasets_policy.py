@@ -36,35 +36,44 @@ class DatasetsPivotRole(PivotRoleStatementSet):
                 ],
                 resources=[f'arn:aws:athena:*:{self.account}:workgroup/{self.env_resource_prefix}*'],
             ),
-            # Minimal Glue catalog discovery permissions
+            # For Glue database management
             iam.PolicyStatement(
-                sid='GlueCatalogDiscovery',
+                sid='GlueCatalog',
                 effect=iam.Effect.ALLOW,
                 actions=[
-                    'glue:GetDatabases',
-                    'glue:GetTables',
-                    'glue:SearchTables',
-                ],
-                resources=[f'arn:aws:glue:*:{self.account}:catalog'],
-            ),
-            # Database creation permissions for dataall-managed databases
-            iam.PolicyStatement(
-                sid='GlueDataAllDatabaseCreation',
-                effect=iam.Effect.ALLOW,
-                actions=[
+                    'glue:BatchCreatePartition',
+                    'glue:BatchDeletePartition',
+                    'glue:BatchDeleteTable',
                     'glue:CreateDatabase',
+                    'glue:CreatePartition',
+                    'glue:CreateTable',
+                    'glue:DeleteDatabase',
+                    'glue:DeletePartition',
+                    'glue:DeleteTable',
+                    'glue:BatchGet*',
+                    'glue:Get*',
+                    'glue:List*',
+                    'glue:SearchTables',
+                    'glue:UpdateDatabase',
+                    'glue:UpdatePartition',
+                    'glue:UpdateTable',
                     'glue:TagResource',
+                    'glue:DeleteResourcePolicy',
+                    'glue:PutResourcePolicy',
                 ],
-                resources=[
-                    f'arn:aws:glue:*:{self.account}:catalog',
-                    f'arn:aws:glue:*:{self.account}:database/{self.env_resource_prefix}*',
-                ],
+                resources=[f'arn:aws:glue:*:{self.account}:catalog',
+                           f'arn:aws:glue:*:{self.account}:database/*']
             ),
-            # Global LakeFormation operations (account-level)
+            # Manage LF permissions for glue databases
             iam.PolicyStatement(
-                sid='LakeFormationGlobal',
+                sid='LakeFormation',
                 effect=iam.Effect.ALLOW,
                 actions=[
+                    'lakeformation:UpdateResource',
+                    'lakeformation:DescribeResource',
+                    'lakeformation:AddLFTagsToResource',
+                    'lakeformation:RemoveLFTagsFromResource',
+                    'lakeformation:GetResourceLFTags',
                     'lakeformation:ListLFTags',
                     'lakeformation:CreateLFTag',
                     'lakeformation:GetLFTag',
@@ -74,8 +83,21 @@ class DatasetsPivotRole(PivotRoleStatementSet):
                     'lakeformation:SearchDatabasesByLFTags',
                     'lakeformation:ListResources',
                     'lakeformation:ListPermissions',
+                    'lakeformation:GrantPermissions',
+                    'lakeformation:BatchGrantPermissions',
+                    'lakeformation:RevokePermissions',
+                    'lakeformation:BatchRevokePermissions',
                     'lakeformation:PutDataLakeSettings',
                     'lakeformation:GetDataLakeSettings',
+                    'lakeformation:GetDataAccess',
+                    'lakeformation:GetWorkUnits',
+                    'lakeformation:StartQueryPlanning',
+                    'lakeformation:GetWorkUnitResults',
+                    'lakeformation:GetQueryState',
+                    'lakeformation:GetQueryStatistics',
+                    'lakeformation:GetTableObjects',
+                    'lakeformation:UpdateTableObjects',
+                    'lakeformation:DeleteObjectsOnCancel',
                 ],
                 resources=['*'],
             ),
@@ -116,10 +138,8 @@ class DatasetsPivotRole(PivotRoleStatementSet):
         ]
         # Adding permissions for Imported Dataset S3 Buckets, created bucket permissions are added in core S3 permissions
         # Adding permissions for Imported KMS keys
-        # Adding permissions for Imported Glue databases
         imported_buckets = []
         imported_kms_alias = []
-        imported_glue_resources = []
 
         engine = db.get_engine(envname=os.environ.get('envname', 'local'))
         with engine.scoped_session() as session:
@@ -132,12 +152,6 @@ class DatasetsPivotRole(PivotRoleStatementSet):
                     imported_buckets.append(f'arn:aws:s3:::{dataset.S3BucketName}')
                     if dataset.importedKmsKey:
                         imported_kms_alias.append(f'alias/{dataset.KmsAlias}')
-                    # Add Glue database and table ARNs for imported datasets
-                    if dataset.importedGlueDatabase:
-                        imported_glue_resources.extend([
-                            f'arn:aws:glue:*:{self.account}:database/{dataset.GlueDatabaseName}',
-                            f'arn:aws:glue:*:{self.account}:table/{dataset.GlueDatabaseName}/*'
-                        ])
 
         if imported_buckets:
             dataset_statements = process_and_split_policy_with_resources_in_statements(
@@ -178,60 +192,5 @@ class DatasetsPivotRole(PivotRoleStatementSet):
                 },
             )
             statements.extend(kms_statements)
-        if imported_glue_resources:
-            glue_statements = process_and_split_policy_with_resources_in_statements(
-                base_sid='ImportedGlueDatabases',
-                effect=iam.Effect.ALLOW.value,
-                actions=[
-                    'glue:BatchCreatePartition',
-                    'glue:BatchDeletePartition',
-                    'glue:BatchDeleteTable',
-                    'glue:CreateDatabase',
-                    'glue:CreatePartition',
-                    'glue:CreateTable',
-                    'glue:DeleteDatabase',
-                    'glue:DeletePartition',
-                    'glue:DeleteTable',
-                    'glue:BatchGet*',
-                    'glue:Get*',
-                    'glue:List*',
-                    'glue:SearchTables',
-                    'glue:UpdateDatabase',
-                    'glue:UpdatePartition',
-                    'glue:UpdateTable',
-                    'glue:TagResource',
-                    'glue:DeleteResourcePolicy',
-                    'glue:PutResourcePolicy',
-                ],
-                resources=imported_glue_resources,
-            )
-            statements.extend(glue_statements)
-        if imported_glue_resources:
-            lf_statements = process_and_split_policy_with_resources_in_statements(
-                base_sid='ImportedLakeFormationResources',
-                effect=iam.Effect.ALLOW.value,
-                actions=[
-                    'lakeformation:UpdateResource',
-                    'lakeformation:DescribeResource',
-                    'lakeformation:AddLFTagsToResource',
-                    'lakeformation:RemoveLFTagsFromResource',
-                    'lakeformation:GetResourceLFTags',
-                    'lakeformation:GrantPermissions',
-                    'lakeformation:BatchGrantPermissions',
-                    'lakeformation:RevokePermissions',
-                    'lakeformation:BatchRevokePermissions',
-                    'lakeformation:GetDataAccess',
-                    'lakeformation:GetWorkUnits',
-                    'lakeformation:StartQueryPlanning',
-                    'lakeformation:GetWorkUnitResults',
-                    'lakeformation:GetQueryState',
-                    'lakeformation:GetQueryStatistics',
-                    'lakeformation:GetTableObjects',
-                    'lakeformation:UpdateTableObjects',
-                    'lakeformation:DeleteObjectsOnCancel',
-                ],
-                resources=imported_glue_resources,
-            )
-            statements.extend(lf_statements)
 
         return statements
