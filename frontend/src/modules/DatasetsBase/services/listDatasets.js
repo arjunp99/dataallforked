@@ -25,6 +25,7 @@ export const listDatasets = ({ filter }) => ({
           tags
           topics
           AwsAccountId
+          imported
           environment {
             label
             region

@@ -16,6 +16,7 @@ import * as FiIcons from 'react-icons/fi';
 import { useNavigate } from 'react-router';
 import { Link as RouterLink } from 'react-router-dom';
 import { Label, StackStatus, useCardStyle } from 'design';
+import { isFeatureEnabled } from 'utils';
 
 export const DatasetListItem = (props) => {
   const { dataset } = props;
@@ -33,6 +34,7 @@ export const DatasetListItem = (props) => {
       : '-';
   const classes = useCardStyle();
   const navigate = useNavigate();
+  const showDatasetType = isFeatureEnabled('s3_datasets', 'show_dataset_type');
   return (
     <Grid item key={dataset.datasetUri} md={3} xs={12} {...props}>
       <Card key={dataset.datasetUri} className={classes.card} raised>
@@ -139,25 +141,27 @@ export const DatasetListItem = (props) => {
             </Grid>
           </Grid>
         </Box>
-        <Box
-          sx={{
-            px: 3,
-            py: 0.5
-          }}
-        >
-          <Grid container>
-            <Grid item md={4} xs={12}>
-              <Typography color="textSecondary" variant="body2">
-                <FaIcons.FaDatabase /> Type
-              </Typography>
+        {showDatasetType && (
+          <Box
+            sx={{
+              px: 3,
+              py: 0.5
+            }}
+          >
+            <Grid container>
+              <Grid item md={4} xs={12}>
+                <Typography color="textSecondary" variant="body2">
+                  <FaIcons.FaDatabase /> Type
+                </Typography>
+              </Grid>
+              <Grid item md={8} xs={12}>
+                <Label color={dataset.imported ? 'primary' : 'secondary'}>
+                  {dataset.imported ? 'Imported' : 'Created'}
+                </Label>
+              </Grid>
             </Grid>
-            <Grid item md={8} xs={12}>
-              <Label color={dataset.imported ? 'primary' : 'secondary'}>
-                {dataset.imported ? 'Imported' : 'Created'}
-              </Label>
-            </Grid>
-          </Grid>
-        </Box>
+          </Box>
+        )}
         <Box
           sx={{
             px: 3,

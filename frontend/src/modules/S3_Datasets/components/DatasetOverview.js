@@ -3,9 +3,11 @@ import PropTypes from 'prop-types';
 import { ObjectBrief, ObjectMetadata } from 'design';
 import { DatasetConsoleAccess } from './DatasetConsoleAccess';
 import { DatasetGovernance } from 'modules/DatasetsBase/components/DatasetGovernance';
+import { isFeatureEnabled } from 'utils';
 
 export const DatasetOverview = (props) => {
   const { dataset, isAdmin, ...other } = props;
+  const showDatasetType = isFeatureEnabled('s3_datasets', 'show_dataset_type');
 
   return (
     <Grid container spacing={2} {...other}>
@@ -17,16 +19,18 @@ export const DatasetOverview = (props) => {
             name={
               <>
                 {dataset.label || '-'}
-                <Chip
-                  size="small"
-                  label={
-                    dataset.imported
-                      ? 'Imported S3-Glue Dataset'
-                      : 'Created S3-Glue Dataset'
-                  }
-                  color={dataset.imported ? 'primary' : 'secondary'}
-                  sx={{ ml: 1 }}
-                />
+                {showDatasetType && (
+                  <Chip
+                    size="small"
+                    label={
+                      dataset.imported
+                        ? 'Imported S3-Glue Dataset'
+                        : 'Created S3-Glue Dataset'
+                    }
+                    color={dataset.imported ? 'primary' : 'secondary'}
+                    sx={{ ml: 1 }}
+                  />
+                )}
               </>
             }
             description={dataset.description || 'No description provided'}
