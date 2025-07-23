@@ -1,4 +1,4 @@
-import { Box, Grid } from '@mui/material';
+import { Box, Grid, Chip } from '@mui/material';
 import PropTypes from 'prop-types';
 import { ObjectBrief, ObjectMetadata } from 'design';
 import { DatasetConsoleAccess } from './DatasetConsoleAccess';
@@ -14,7 +14,17 @@ export const DatasetOverview = (props) => {
           <ObjectBrief
             title="Details"
             uri={dataset.datasetUri || '-'}
-            name={dataset.label || '-'}
+            name={
+              <>
+                {dataset.label || '-'}
+                <Chip
+                  size="small"
+                  label={dataset.imported ? 'Imported S3-Glue Dataset' : 'Created S3-Glue Dataset'}
+                  color={dataset.imported ? 'primary' : 'secondary'}
+                  sx={{ ml: 1 }}
+                />
+              </>
+            }
             description={dataset.description || 'No description provided'}
           />
         </Box>

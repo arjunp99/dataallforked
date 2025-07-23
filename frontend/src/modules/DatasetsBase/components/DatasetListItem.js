@@ -148,6 +148,27 @@ export const DatasetListItem = (props) => {
           <Grid container>
             <Grid item md={4} xs={12}>
               <Typography color="textSecondary" variant="body2">
+                <FaIcons.FaDatabase /> Type
+              </Typography>
+            </Grid>
+            <Grid item md={8} xs={12}>
+              <Label
+                color={dataset.imported ? 'primary' : 'secondary'}
+              >
+                {dataset.imported ? 'Imported' : 'Created'}
+              </Label>
+            </Grid>
+          </Grid>
+        </Box>
+        <Box
+          sx={{
+            px: 3,
+            py: 0.5
+          }}
+        >
+          <Grid container>
+            <Grid item md={4} xs={12}>
+              <Typography color="textSecondary" variant="body2">
                 <FaIcons.FaUsersCog /> Team
               </Typography>
             </Grid>
