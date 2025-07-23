@@ -19,7 +19,11 @@ export const DatasetOverview = (props) => {
                 {dataset.label || '-'}
                 <Chip
                   size="small"
-                  label={dataset.imported ? 'Imported S3-Glue Dataset' : 'Created S3-Glue Dataset'}
+                  label={
+                    dataset.imported
+                      ? 'Imported S3-Glue Dataset'
+                      : 'Created S3-Glue Dataset'
+                  }
                   color={dataset.imported ? 'primary' : 'secondary'}
                   sx={{ ml: 1 }}
                 />

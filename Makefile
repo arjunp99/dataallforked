@@ -25,7 +25,7 @@ install-deploy:
 	pip install -r deploy/requirements.txt
 
 install-backend:
-	pip install -r backend/requirements.txt
+	pip install -r backend/requirements.txt -c backend/constraints.txt
 
 install-cdkproxy:
 	pip install -r backend/dataall/base/cdkproxy/requirements.txt

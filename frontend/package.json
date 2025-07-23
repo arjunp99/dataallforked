@@ -134,7 +134,9 @@
     "eslint-plugin-import": "^2.27.5",
     "eslint-plugin-prettier": "^4.2.1",
     "prettier": "2.8.7",
-    "watch": "^1.0.2"
+    "watch": "^1.0.2",
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
+    "browserslist-update-db": "^1.0.0"
   },
   "eslintConfig": {
     "plugins": [

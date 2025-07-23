@@ -152,9 +152,7 @@ export const DatasetListItem = (props) => {
               </Typography>
             </Grid>
             <Grid item md={8} xs={12}>
-              <Label
-                color={dataset.imported ? 'primary' : 'secondary'}
-              >
+              <Label color={dataset.imported ? 'primary' : 'secondary'}>
                 {dataset.imported ? 'Imported' : 'Created'}
               </Label>
             </Grid>
