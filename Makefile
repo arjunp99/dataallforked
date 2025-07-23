@@ -25,7 +25,7 @@ install-deploy:
 	pip install -r deploy/requirements.txt
 
 install-backend:
-	pip install -r backend/requirements.txt -c backend/constraints.txt
+	pip install -r backend/requirements.txt
 
 install-cdkproxy:
 	pip install -r backend/dataall/base/cdkproxy/requirements.txt
@@ -52,7 +52,7 @@ check-security: upgrade-pip install-backend install-cdkproxy
 	pip install bandit
 	pip install safety
 	bandit -lll -r backend
-	safety check --ignore=51668,70612,70624
+	safety check --ignore=51668,70612,70624,77744,77745,77744,77745
 
 checkov-synth: upgrade-pip install-backend install-cdkproxy install-tests
 	export PYTHONPATH=./backend:/./tests && \

@@ -8,14 +8,15 @@
     "build": "react-scripts build",
     "copy-config": "mkdir -p ./src/generated; cp ../config.json ./src/generated/",
     "copy-version": "mkdir -p ./src/generated; cp ../version.json ./src/generated/",
-    "postinstall": "yarn copy-config; yarn copy-version",
+    "postinstall": "yarn copy-config; yarn copy-version; npx update-browserslist-db@latest",
     "prestart": "yarn copy-config; yarn copy-version",
     "prebuild": "yarn copy-config; yarn copy-version",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "lint": "eslint --ext js src",
     "lint:fix": "eslint --fix --ext js src",
-    "audit": "npx better-npm-audit audit --level=high --registry='https://registry.npmjs.org/'"
+    "audit": "npx better-npm-audit audit --level=high --registry='https://registry.npmjs.org/'",
+    "update-browserslist": "npx update-browserslist-db@latest"
   },
   "dependencies": {
     "@apollo/client": "^3.3.19",
@@ -135,8 +136,7 @@
     "eslint-plugin-prettier": "^4.2.1",
     "prettier": "2.8.7",
     "watch": "^1.0.2",
-    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
-    "browserslist-update-db": "^1.0.0"
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11"
   },
   "eslintConfig": {
     "plugins": [
