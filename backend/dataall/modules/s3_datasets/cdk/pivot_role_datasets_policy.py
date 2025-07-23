@@ -99,7 +99,8 @@ class DatasetsPivotRole(PivotRoleStatementSet):
                     'lakeformation:UpdateTableObjects',
                     'lakeformation:DeleteObjectsOnCancel',
                 ],
-                resources=['*'],
+                resources=[f'arn:aws:glue:*:{self.account}:catalog',
+                           f'arn:aws:glue:*:{self.account}:database/*']
             ),
             # Glue ETL - needed to start crawler and profiling jobs
             iam.PolicyStatement(
