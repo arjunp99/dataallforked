@@ -83,19 +83,31 @@ Resources:
             Effect: Allow
             Resource:
               - 'arn:aws:s3:::*'
-          - Sid: KMS
+          - Sid: KMSDataAccess
             Action:
               - 'kms:Decrypt'
               - 'kms:Encrypt'
               - 'kms:GenerateDataKey*'
+              - 'kms:ReEncrypt*'
+            Effect: Allow
+            Resource: !Sub 'arn:aws:kms:*:${AWS::AccountId}:key/*'
+            Condition:
+              'ForAnyValue:StringLike':
+                'kms:ResourceAliases':
+                  - !Sub 'alias/${EnvironmentResourcePrefix}*'
+                  - 'alias/aws/s3'
+          - Sid: KMSKeyManagement
+            Action:
               - 'kms:GetKeyPolicy'
               - 'kms:PutKeyPolicy'
-              - 'kms:ReEncrypt*'
               - 'kms:TagResource'
               - 'kms:UntagResource'
             Effect: Allow
-            Resource:
-              - '*'
+            Resource: !Sub 'arn:aws:kms:*:${AWS::AccountId}:key/*'
+            Condition:
+              'ForAnyValue:StringLike':
+                'kms:ResourceAliases':
+                  - !Sub 'alias/${EnvironmentResourcePrefix}*'
           - Sid: KMSList
             Action:
               - 'kms:List*'
@@ -302,8 +314,20 @@ Resources:
             Action:
               - "ram:AcceptResourceShareInvitation"
               - "ram:RejectResourceShareInvitation"
+            Resource: !Sub 'arn:aws:ram:*:${AWS::AccountId}:resource-share-invitation/*'
+            Condition:
+              'ForAllValues:StringLike':
+                'ram:ResourceShareName':
+                  - LakeFormation*
+                  - !Sub '${EnvironmentResourcePrefix}*'
+          - Sid: RamOrganizationSharing
+            Effect: Allow
+            Action:
               - "ram:EnableSharingWithAwsOrganization"
             Resource: '*'
+            Condition:
+              StringEquals:
+                'aws:RequestedRegion': !Ref 'AWS::Region'
           - Sid: RamRead
             Effect: Allow
             Action:

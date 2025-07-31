@@ -60,17 +60,20 @@ class DataSharingPivotRole(PivotRoleStatementSet):
                 sid='RamTag',
                 effect=iam.Effect.ALLOW,
                 actions=['ram:TagResource'],
-                resources=['*'],
+                resources=[f'arn:aws:ram:*:{self.account}:resource-share/*'],
                 conditions={'ForAllValues:StringLike': {'ram:ResourceShareName': ['LakeFormation*']}},
             ),
             iam.PolicyStatement(
                 sid='RamCreateResource',
                 effect=iam.Effect.ALLOW,
                 actions=['ram:CreateResourceShare'],
-                resources=['*'],
+                resources=[f'arn:aws:ram:*:{self.account}:resource-share/*'],
                 conditions={
                     'ForAllValues:StringEquals': {
                         'ram:RequestedResourceType': ['glue:Table', 'glue:Database', 'glue:Catalog']
+                    },
+                    'StringEquals': {
+                        'aws:ResourceAccount': [f'{self.account}']
                     }
                 },
             ),
@@ -101,10 +104,31 @@ class DataSharingPivotRole(PivotRoleStatementSet):
                 effect=iam.Effect.ALLOW,
                 actions=[
                     'ram:AcceptResourceShareInvitation',
-                    'ram:RejectResourceShareInvitation',
-                    'ram:EnableSharingWithAwsOrganization',
+                    'ram:RejectResourceShareInvitation'
+                ],
+                resources=[f'arn:aws:ram:*:{self.account}:resource-share-invitation/*'],
+                conditions={
+                    'StringEquals': {
+                        'aws:ResourceAccount': [f'{self.account}']
+                    },
+                    'ForAllValues:StringLike': {
+                        'ram:ResourceShareName': ['LakeFormation*', f'{self.env_resource_prefix}*']
+                    }
+                },
+            ),
+            iam.PolicyStatement(
+                sid='RamOrganizationSharing',
+                effect=iam.Effect.ALLOW,
+                actions=[
+                    'ram:EnableSharingWithAwsOrganization'
                 ],
                 resources=['*'],
+                conditions={
+                    'StringEquals': {
+                        'aws:ResourceAccount': [f'{self.account}'],
+                        'aws:RequestedRegion': [f'{self.region}']
+                    }
+                },
             ),
             iam.PolicyStatement(
                 sid='RamRead',

@@ -29,14 +29,25 @@ class KMSPivotRole(PivotRoleStatementSet):
                     'kms:Decrypt',
                     'kms:Encrypt',
                     'kms:GenerateDataKey*',
+                    'kms:ReEncrypt*',
+                ],
+                resources=[f'arn:aws:kms:{self.region}:{self.account}:key/*'],
+                conditions={'ForAnyValue:StringLike': {'kms:ResourceAliases': [f'alias/{self.env_resource_prefix}*', 'alias/aws/s3']}},
+            ),
+            iam.PolicyStatement(
+                sid='KMSKeyManagement',
+                effect=iam.Effect.ALLOW,
+                actions=[
                     'kms:GetKeyPolicy',
                     'kms:PutKeyPolicy',
-                    'kms:ReEncrypt*',
                     'kms:TagResource',
                     'kms:UntagResource',
                 ],
                 resources=[f'arn:aws:kms:{self.region}:{self.account}:key/*'],
-                conditions={'ForAnyValue:StringLike': {'kms:ResourceAliases': [f'alias/{self.env_resource_prefix}*']}},
+                conditions={
+                    'ForAnyValue:StringLike': {'kms:ResourceAliases': [f'alias/{self.env_resource_prefix}*']},
+                    'StringEquals': {'aws:RequestedRegion': [f'{self.region}']}
+                },
             ),
         ]
         return statements
