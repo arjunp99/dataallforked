@@ -388,7 +388,10 @@ Resources:
               - 'lakeformation:GetTableObjects'
               - 'lakeformation:UpdateTableObjects'
               - 'lakeformation:DeleteObjectsOnCancel'
-            Resource: '*'
+            Resource:
+              - !Sub 'arn:aws:lakeformation:*:${AWS::AccountId}:catalog:${AWS::AccountId}'
+              - !Sub 'arn:aws:glue:*:${AWS::AccountId}:catalog'
+              - !Sub 'arn:aws:glue:*:${AWS::AccountId}:database/*'
           - Sid: QuickSight
             Effect: Allow
             Action:
