@@ -50,9 +50,13 @@ class DatasetsPivotRole(PivotRoleStatementSet):
                     'glue:DeleteDatabase',
                     'glue:DeletePartition',
                     'glue:DeleteTable',
-                    'glue:BatchGet*',
-                    'glue:Get*',
-                    'glue:List*',
+                    'glue:BatchGetPartition',
+                    'glue:GetDatabase',
+                    'glue:GetDatabases',
+                    'glue:GetTable',
+                    'glue:GetTables',
+                    'glue:GetPartition',
+                    'glue:GetPartitions',
                     'glue:SearchTables',
                     'glue:UpdateDatabase',
                     'glue:UpdatePartition',
@@ -61,8 +65,11 @@ class DatasetsPivotRole(PivotRoleStatementSet):
                     'glue:DeleteResourcePolicy',
                     'glue:PutResourcePolicy',
                 ],
-                resources=[f'arn:aws:glue:*:{self.account}:catalog',
-                           f'arn:aws:glue:*:{self.account}:database/*']
+                resources=[
+                    f'arn:aws:glue:*:{self.account}:catalog',
+                    f'arn:aws:glue:*:{self.account}:database/{self.env_resource_prefix}*',
+                    f'arn:aws:glue:*:{self.account}:table/{self.env_resource_prefix}*/*',
+                ]
             ),
             # Manage LF permissions for glue databases
             iam.PolicyStatement(
@@ -99,7 +106,11 @@ class DatasetsPivotRole(PivotRoleStatementSet):
                     'lakeformation:UpdateTableObjects',
                     'lakeformation:DeleteObjectsOnCancel',
                 ],
-                resources=['*']  # Temporary fix - revert to wildcard
+                resources=[
+                    f'arn:aws:lakeformation:*:{self.account}:catalog',
+                    f'arn:aws:lakeformation:*:{self.account}:database/{self.env_resource_prefix}*',
+                    f'arn:aws:lakeformation:*:{self.account}:table/{self.env_resource_prefix}*/*',
+                ]
             ),
             # Glue ETL - needed to start crawler and profiling jobs
             iam.PolicyStatement(
@@ -185,10 +196,15 @@ class DatasetsPivotRole(PivotRoleStatementSet):
                     'kms:UntagResource',
                 ],
                 resources=[f'arn:aws:kms:{self.region}:{self.account}:key/*'],
+                conditions={
+                    'StringLike': {
+                        'kms:ResourceAliases': [f'alias/{self.env_resource_prefix}*']
+                    }
+                },
                 condition_dict={
                     'key': 'ForAnyValue:StringLike',
                     'resource': 'kms:ResourceAliases',
-                    'values': imported_kms_alias,
+                    'values': imported_kms_alias + [f'alias/{self.env_resource_prefix}*'],
                 },
             )
             statements.extend(kms_statements)
