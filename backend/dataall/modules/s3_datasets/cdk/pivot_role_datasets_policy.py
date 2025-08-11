@@ -8,6 +8,7 @@ from dataall.core.environment.cdk.pivot_role_stack import PivotRoleStatementSet
 from dataall.modules.s3_datasets.db.dataset_repositories import DatasetRepository
 from dataall.modules.s3_datasets.db.dataset_models import S3Dataset
 from aws_cdk import aws_iam as iam
+from sqlalchemy import and_
 
 
 class DatasetsPivotRole(PivotRoleStatementSet):
@@ -15,8 +16,8 @@ class DatasetsPivotRole(PivotRoleStatementSet):
     Class including all permissions needed  by the pivot role to work with Datasets based in S3 and Glue databases
     It allows pivot role access to:
     - Athena workgroups for the environment teams
-    - All Glue catalog resources (governed by Lake Formation)
-    - Lake Formation
+    - Specific Glue databases used by datasets in this environment only
+    - Lake Formation resources for specific datasets only
     - Glue ETL for environment resources
     - Imported Datasets' buckets
     - Imported KMS keys alias
@@ -36,71 +37,8 @@ class DatasetsPivotRole(PivotRoleStatementSet):
                 ],
                 resources=[f'arn:aws:athena:*:{self.account}:workgroup/{self.env_resource_prefix}*'],
             ),
-            # For Glue database management
-            iam.PolicyStatement(
-                sid='GlueCatalog',
-                effect=iam.Effect.ALLOW,
-                actions=[
-                    'glue:BatchCreatePartition',
-                    'glue:BatchDeletePartition',
-                    'glue:BatchDeleteTable',
-                    'glue:CreateDatabase',
-                    'glue:CreatePartition',
-                    'glue:CreateTable',
-                    'glue:DeleteDatabase',
-                    'glue:DeletePartition',
-                    'glue:DeleteTable',
-                    'glue:BatchGet*',
-                    'glue:Get*',
-                    'glue:List*',
-                    'glue:SearchTables',
-                    'glue:UpdateDatabase',
-                    'glue:UpdatePartition',
-                    'glue:UpdateTable',
-                    'glue:TagResource',
-                    'glue:DeleteResourcePolicy',
-                    'glue:PutResourcePolicy',
-                ],
-                resources=[f'arn:aws:glue:*:{self.account}:catalog',
-                           f'arn:aws:glue:*:{self.account}:database/*']
-            ),
-            # Manage LF permissions for glue databases
-            iam.PolicyStatement(
-                sid='LakeFormation',
-                effect=iam.Effect.ALLOW,
-                actions=[
-                    'lakeformation:UpdateResource',
-                    'lakeformation:DescribeResource',
-                    'lakeformation:AddLFTagsToResource',
-                    'lakeformation:RemoveLFTagsFromResource',
-                    'lakeformation:GetResourceLFTags',
-                    'lakeformation:ListLFTags',
-                    'lakeformation:CreateLFTag',
-                    'lakeformation:GetLFTag',
-                    'lakeformation:UpdateLFTag',
-                    'lakeformation:DeleteLFTag',
-                    'lakeformation:SearchTablesByLFTags',
-                    'lakeformation:SearchDatabasesByLFTags',
-                    'lakeformation:ListResources',
-                    'lakeformation:ListPermissions',
-                    'lakeformation:GrantPermissions',
-                    'lakeformation:BatchGrantPermissions',
-                    'lakeformation:RevokePermissions',
-                    'lakeformation:BatchRevokePermissions',
-                    'lakeformation:PutDataLakeSettings',
-                    'lakeformation:GetDataLakeSettings',
-                    'lakeformation:GetDataAccess',
-                    'lakeformation:GetWorkUnits',
-                    'lakeformation:StartQueryPlanning',
-                    'lakeformation:GetWorkUnitResults',
-                    'lakeformation:GetQueryState',
-                    'lakeformation:GetQueryStatistics',
-                    'lakeformation:GetTableObjects',
-                    'lakeformation:UpdateTableObjects',
-                    'lakeformation:DeleteObjectsOnCancel',
-                ],
-                resources=['*']  # Temporary fix - revert to wildcard
-            ),
+
+
             # Glue ETL - needed to start crawler and profiling jobs
             iam.PolicyStatement(
                 sid='GlueETL',
@@ -136,22 +74,111 @@ class DatasetsPivotRole(PivotRoleStatementSet):
                 },
             ),
         ]
-        # Adding permissions for Imported Dataset S3 Buckets, created bucket permissions are added in core S3 permissions
-        # Adding permissions for Imported KMS keys
+        # Query all datasets (both created and imported) for this environment
+        glue_databases = []
         imported_buckets = []
         imported_kms_alias = []
 
         engine = db.get_engine(envname=os.environ.get('envname', 'local'))
         with engine.scoped_session() as session:
-            datasets = DatasetRepository.query_environment_imported_datasets(
-                session, uri=self.environmentUri, filter=None
-            )
-            if datasets:
+            # Get all active datasets in this environment
+            all_datasets = session.query(S3Dataset).filter(
+                and_(S3Dataset.environmentUri == self.environmentUri, S3Dataset.deleted.is_(None))
+            ).all()
+            
+            if all_datasets:
                 dataset: S3Dataset
-                for dataset in datasets:
-                    imported_buckets.append(f'arn:aws:s3:::{dataset.S3BucketName}')
-                    if dataset.importedKmsKey:
-                        imported_kms_alias.append(f'alias/{dataset.KmsAlias}')
+                for dataset in all_datasets:
+                    # Collect Glue database names for all datasets
+                    if dataset.GlueDatabaseName:
+                        glue_databases.append(dataset.GlueDatabaseName)
+                    
+                    # Handle imported datasets (existing S3 bucket logic)
+                    if dataset.imported:
+                        imported_buckets.append(f'arn:aws:s3:::{dataset.S3BucketName}')
+                        if dataset.importedKmsKey:
+                            imported_kms_alias.append(f'alias/{dataset.KmsAlias}')
+
+        # Add Glue permissions for specific databases only
+        if glue_databases:
+            glue_database_resources = [f'arn:aws:glue:*:{self.account}:catalog']
+            glue_database_resources.extend([f'arn:aws:glue:*:{self.account}:database/{db}' for db in glue_databases])
+            glue_database_resources.extend([f'arn:aws:glue:*:{self.account}:table/{db}/*' for db in glue_databases])
+            
+            glue_statements = process_and_split_policy_with_resources_in_statements(
+                base_sid='GlueCatalogDatasets',
+                effect=iam.Effect.ALLOW.value,
+                actions=[
+                    'glue:BatchCreatePartition',
+                    'glue:BatchDeletePartition',
+                    'glue:BatchDeleteTable',
+                    'glue:CreateDatabase',
+                    'glue:CreatePartition',
+                    'glue:CreateTable',
+                    'glue:DeleteDatabase',
+                    'glue:DeletePartition',
+                    'glue:DeleteTable',
+                    'glue:BatchGetPartition',
+                    'glue:GetDatabase',
+                    'glue:GetDatabases',
+                    'glue:GetTable',
+                    'glue:GetTables',
+                    'glue:GetPartition',
+                    'glue:GetPartitions',
+                    'glue:SearchTables',
+                    'glue:UpdateDatabase',
+                    'glue:UpdatePartition',
+                    'glue:UpdateTable',
+                    'glue:TagResource',
+                    'glue:DeleteResourcePolicy',
+                    'glue:PutResourcePolicy',
+                ],
+                resources=glue_database_resources,
+            )
+            statements.extend(glue_statements)
+            
+            # Add Lake Formation permissions for specific databases
+            lf_resources = [f'arn:aws:lakeformation:*:{self.account}:catalog']
+            lf_resources.extend([f'arn:aws:lakeformation:*:{self.account}:database/{db}' for db in glue_databases])
+            lf_resources.extend([f'arn:aws:lakeformation:*:{self.account}:table/{db}/*' for db in glue_databases])
+            
+            lf_statements = process_and_split_policy_with_resources_in_statements(
+                base_sid='LakeFormationDatasets',
+                effect=iam.Effect.ALLOW.value,
+                actions=[
+                    'lakeformation:UpdateResource',
+                    'lakeformation:DescribeResource',
+                    'lakeformation:AddLFTagsToResource',
+                    'lakeformation:RemoveLFTagsFromResource',
+                    'lakeformation:GetResourceLFTags',
+                    'lakeformation:ListLFTags',
+                    'lakeformation:CreateLFTag',
+                    'lakeformation:GetLFTag',
+                    'lakeformation:UpdateLFTag',
+                    'lakeformation:DeleteLFTag',
+                    'lakeformation:SearchTablesByLFTags',
+                    'lakeformation:SearchDatabasesByLFTags',
+                    'lakeformation:ListResources',
+                    'lakeformation:ListPermissions',
+                    'lakeformation:GrantPermissions',
+                    'lakeformation:BatchGrantPermissions',
+                    'lakeformation:RevokePermissions',
+                    'lakeformation:BatchRevokePermissions',
+                    'lakeformation:PutDataLakeSettings',
+                    'lakeformation:GetDataLakeSettings',
+                    'lakeformation:GetDataAccess',
+                    'lakeformation:GetWorkUnits',
+                    'lakeformation:StartQueryPlanning',
+                    'lakeformation:GetWorkUnitResults',
+                    'lakeformation:GetQueryState',
+                    'lakeformation:GetQueryStatistics',
+                    'lakeformation:GetTableObjects',
+                    'lakeformation:UpdateTableObjects',
+                    'lakeformation:DeleteObjectsOnCancel',
+                ],
+                resources=lf_resources,
+            )
+            statements.extend(lf_statements)
 
         if imported_buckets:
             dataset_statements = process_and_split_policy_with_resources_in_statements(
