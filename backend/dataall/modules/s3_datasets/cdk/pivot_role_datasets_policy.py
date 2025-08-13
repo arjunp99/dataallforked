@@ -66,7 +66,8 @@ class DatasetsPivotRole(PivotRoleStatementSet):
                     'glue:PutResourcePolicy',
                 ],
                 resources=[f'arn:aws:glue:*:{self.account}:catalog',
-                           f'arn:aws:glue:*:{self.account}:database/*']
+                           f'arn:aws:glue:*:{self.account}:database/*',
+                           f'arn:aws:glue:*:{self.account}:table/*/*']
             ),
             # Manage LF permissions for glue databases
             iam.PolicyStatement(
