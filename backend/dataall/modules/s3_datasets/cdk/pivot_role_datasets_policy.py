@@ -116,6 +116,7 @@ class DatasetsPivotRole(PivotRoleStatementSet):
                     'glue:UpdateTrigger',
                     'glue:UpdateJob',
                     'glue:UpdateCrawler',
+                    'glue:GetCrawler'
                 ],
                 resources=[
                     f'arn:aws:glue:*:{self.account}:crawler/{self.env_resource_prefix}*',
