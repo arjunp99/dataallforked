@@ -55,7 +55,7 @@
                 "file_uploads": true,
                 "file_actions": true,
                 "aws_actions": true,
-                "preview_data": true,
+                "preview_data": false,
                 "glue_crawler": true,
                 "metrics_data": true,
                 "show_stack_logs": "enabled",

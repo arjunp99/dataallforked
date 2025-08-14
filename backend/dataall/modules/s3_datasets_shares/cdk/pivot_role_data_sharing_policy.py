@@ -106,11 +106,8 @@ class DataSharingPivotRole(PivotRoleStatementSet):
                     'ram:AcceptResourceShareInvitation',
                     'ram:RejectResourceShareInvitation'
                 ],
-                resources=[f'arn:aws:ram:*:{self.account}:resource-share-invitation/*'],
+                resources=[f'arn:aws:ram:*:*:resource-share-invitation/*'],
                 conditions={
-                    'StringEquals': {
-                        'aws:ResourceAccount': [f'{self.account}']
-                    },
                     'ForAllValues:StringLike': {
                         'ram:ResourceShareName': ['LakeFormation*', f'{self.env_resource_prefix}*']
                     }
